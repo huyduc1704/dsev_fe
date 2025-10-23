@@ -26,7 +26,7 @@ export default function BrandIntro() {
   ]
 
   return (
-    <section className="bg-muted py-16">
+    <section className="bg-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Brand Introduction */}
         <div className="text-center mb-12">
@@ -60,19 +60,19 @@ export default function BrandIntro() {
 
         {/* Stats Section */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
+          <div className="bg-background border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
             <div className="text-3xl font-bold text-primary mb-2">10K+</div>
             <div className="text-sm text-muted-foreground">Khách hàng tin tưởng</div>
           </div>
-          <div>
+          <div className="bg-background border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
             <div className="text-3xl font-bold text-primary mb-2">500+</div>
             <div className="text-sm text-muted-foreground">Sản phẩm đa dạng</div>
           </div>
-          <div>
+          <div className="bg-background border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
             <div className="text-3xl font-bold text-primary mb-2">50+</div>
             <div className="text-sm text-muted-foreground">Thương hiệu nổi tiếng</div>
           </div>
-          <div>
+          <div className="bg-background border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
             <div className="text-3xl font-bold text-primary mb-2">99%</div>
             <div className="text-sm text-muted-foreground">Khách hàng hài lòng</div>
           </div>

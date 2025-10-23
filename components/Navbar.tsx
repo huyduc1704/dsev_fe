@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Menu, ShoppingCart, Search, User } from "lucide-react"
 import { categories } from "../data/mockData"
+import Image from "next/image"
 
 interface NavbarProps {
   activeCategory: string
@@ -18,7 +19,16 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-primary">DV.ES</h1>
+            <a href="/">
+              <Image
+                src="/logo-DSEV.png"
+                alt="DV.ES logo"
+                width={90}
+                height={30}
+                className="object-contain"
+                priority
+              />
+            </a>
           </div>
 
           {/* Desktop Navigation */}
@@ -31,7 +41,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                     activeCategory === category.key
                       ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted hover:text-accent-foreground"
+                      : "text-foreground hover:bg-muted hover:text-primary"
                   }`}
                 >
                   {category.label}
@@ -42,13 +52,13 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
 
           {/* Right side icons */}
           <div className="hidden md:flex items-center space-x-4">
-            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
+            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
               <Search className="h-5 w-5" />
             </button>
-            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
+            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
               <User className="h-5 w-5" />
             </button>
-            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative">
+            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative">
               <ShoppingCart className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 0
