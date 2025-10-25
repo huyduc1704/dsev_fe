@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Menu, ShoppingCart, Search, User } from "lucide-react"
 import { categories } from "../data/mockData"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 interface NavbarProps {
   activeCategory: string
@@ -12,6 +13,7 @@ interface NavbarProps {
 
 export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <nav className="bg-background border-b border-border sticky top-0 z-50 shadow-sm">
@@ -38,11 +40,10 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                 <button
                   key={category.key}
                   onClick={() => onCategoryChange(category.key)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    activeCategory === category.key
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted hover:text-primary"
-                  }`}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${activeCategory === category.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-muted hover:text-primary"
+                    }`}
                 >
                   {category.label}
                 </button>
@@ -55,7 +56,11 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
             <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
               <Search className="h-5 w-5" />
             </button>
-            <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
+            <button
+              onClick={() => router.push("/auth")}
+              className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors"
+              aria-label="Đăng nhập"
+            >
               <User className="h-5 w-5" />
             </button>
             <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative">
@@ -88,11 +93,10 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                     onCategoryChange(category.key)
                     setIsMobileMenuOpen(false)
                   }}
-                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                    activeCategory === category.key
-                      ? "bg-primary text-primary-foreground"
-                      : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
-                  }`}
+                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${activeCategory === category.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
+                    }`}
                 >
                   {category.label}
                 </button>
@@ -103,8 +107,14 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                 <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
                   <Search className="h-5 w-5" />
                 </button>
-                <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
-                  <User className="h-5 w-5" />
+                <button
+                  onClick={() => {
+                    router.push("/auth")
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors"
+                >
+                  <User className="h-5, w-5" />
                 </button>
                 <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative">
                   <ShoppingCart className="h-5 w-5" />

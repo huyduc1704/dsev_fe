@@ -2,7 +2,13 @@
 
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react"
 
-export default function ContactUs() {
+interface ContactUsProps {
+  className?: string
+  bgClass?: string
+  fullWidth?: boolean
+}
+
+export default function ContactUs({ className, bgClass, fullWidth }: ContactUsProps) {
   const socials = [
     { icon: Facebook, href: "https://www.facebook.com/dvesport", label: "Facebook" },
     { icon: Instagram, href: "https://www.instagram.com/dvesport", label: "Instagram" },
@@ -12,8 +18,8 @@ export default function ContactUs() {
 
   return (
     // Section uses same container width as other sections (max-w-7xl)
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-[50px] pb-6">
-      <div className="w-full bg-background rounded-xl p-6 md:p-10 flex flex-col md:flex-row items-center gap-6 relative z-20">
+    <div className={`${fullWidth ? "w-full" : "max-w-7xl mx-auto"} mt-[50px] pb-6`}>
+      <div className={`w-full ${bgClass ?? "bg-background"} rounded-xl p-6 md:p-10 flex flex-col md:flex-row items-center gap-6 ${className ?? ""}`}>
         <div className="flex-1 text-left">
           <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-1">LUÔN LUÔN LẮNG NGHE</h3>
           <p className="text-xl font-semibold text-foreground mb-4">LIÊN HỆ</p>
@@ -43,6 +49,7 @@ export default function ContactUs() {
           <img src="/contact-us.png" alt="Contact illustration" className="w-full h-auto object-contain" />
         </div>
       </div>
-    </section>
+    </div>
+
   )
 }
