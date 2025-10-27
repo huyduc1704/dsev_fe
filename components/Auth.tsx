@@ -30,22 +30,33 @@ export default function AuthForm() {
     const handleLogin = async () => {
         setErrors({ ...errors, login: "" })
         if (!loginData.username || !loginData.password) {
-            setErrors({ ...errors, login: "Vui lòng nhập tài khoản và mật khẩu" })
+            setErrors({ ...errors, login: "Vui lòng điền tài khoản và mật khẩu" })
             return
         }
         try {
-            const res = await fetch(`${baseUrl}/api/v1/auth/login`, {
+            const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(loginData),
+                credentials: "include",
+                body: JSON.stringify({
+                    username: loginData.username,
+                    password: loginData.password
+                })
             })
-            const data = await res.json()
+
+            const body = await res.json().catch(() => ({}))
+
             if (!res.ok) {
-                setErrors({ ...errors, login: data?.message || "Đăng nhập thất bại" })
+                setErrors({ ...errors, login: body?.error || body?.message || "Đăng nhập thất bại" })
                 return
             }
-            const token = data?.token || data?.accessToken || data?.data?.token
-            if (token) localStorage.setItem("token", token)
+            const accessToken = body?.data?.accessToken || body?.accessToken || body?.token
+
+            if (accessToken) {
+                const username = body?.data?.username || body?.data?.email || loginData.username
+                localStorage.setItem("username", username)
+            }
+
             message.success("Đăng nhập thành công")
             router.push("/")
         } catch (err) {
