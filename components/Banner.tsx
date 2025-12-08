@@ -31,9 +31,8 @@ export default function Banner() {
           {bannerSlides.map((slide, index) => (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-1000 rounded-2xl ${
-                index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 rounded-2xl ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+                }`}
             >
               <div
                 className="w-full h-full bg-cover bg-center bg-no-repeat rounded-2xl"
@@ -52,7 +51,6 @@ export default function Banner() {
               </div>
             </div>
           ))}
-         {/* Navigation arrows */}
           <button
             onClick={prevSlide}
             className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-90 hover:bg-opacity-100 text-primary p-2 rounded-full transition-all duration-200 z-30"

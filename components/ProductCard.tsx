@@ -1,5 +1,6 @@
 "use client"
 import { ShoppingCart, Heart } from "lucide-react"
+import Link from "next/link"
 import type { Product } from "../data/mockData"
 
 interface ProductCardProps {
@@ -8,6 +9,10 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onAddToCart }: ProductCardProps) {
+  // Debug: log image src used
+  if (typeof window !== 'undefined') {
+    console.log('ProductCard image src:', product.images?.[0] || "/placeholder.svg")
+  }
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -16,17 +21,25 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group">
-      <div className="relative overflow-hidden">
-        <img
-          src={product.image || "/placeholder.svg"}
-          alt={product.name}
-          className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <button className="absolute top-3 right-3 p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full transition-all duration-200 opacity-0 group-hover:opacity-100">
-          <Heart className="h-4 w-4 text-muted-foreground hover:text-primary" />
+    <Link href={`/products/${product.id}`} className="bg-card border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group block">
+      <div className="relative overflow-hidden bg-muted aspect-square">
+        {/* Placeholder khi chưa có ảnh thật */}
+        {product.images[0] === "/placeholder.svg" ? (
+          <div className="flex h-full items-center justify-center">
+            <span className="text-6xl text-muted-foreground/30">Photo</span>
+          </div>
+        ) : (
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="h-full w-full object-contain bg-white p-4 transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        )}
+
+        <button className="absolute top-3 right-3 rounded-full bg-white/80 p-2 opacity-0 backdrop-blur-sm transition-all group-hover:opacity-100">
+          <Heart className="h-5 w-5 text-muted-foreground hover:text-red-500 transition-colors" />
         </button>
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
       </div>
 
       <div className="p-4">
@@ -36,14 +49,14 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold text-primary">{formatPrice(product.price)}</span>
           <button
-            onClick={() => onAddToCart(product)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 font-medium"
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 font-small"
           >
             <ShoppingCart className="h-4 w-4" />
-            Thêm vào giỏ
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }

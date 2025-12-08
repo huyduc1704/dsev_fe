@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import UserPopover from "./ui/user-popover"
 import type { User } from "@/lib/types/user"
 import { set } from "date-fns"
+import { useCart } from "./cart-context"
 
 interface NavbarProps {
   activeCategory: string
@@ -19,6 +20,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
   const [user, setUser] = useState<User | null>(null)
   const [showPopover, setShowPopover] = useState(false)
   const router = useRouter()
+  const { setOpen: setCartOpen, itemsCount, refreshCart } = useCart() as any
 
   useEffect(() => {
     let mounted = true
@@ -30,6 +32,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
             const body = await res.json().catch(() => ({}))
             const u = body?.data ?? null
             setUser(u)
+            try { await refreshCart() } catch { }
           } else {
             setUser(null)
           }
@@ -101,9 +104,9 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
               >
                 <UserIcon className="h-5 w-5" />
               </button>
-              <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative">
+              <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative" onClick={() => setCartOpen(true)}>
                 <ShoppingCart className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
               </button>
             </div>
 
@@ -149,9 +152,9 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                   >
                     <UserIcon className="h-5 w-5" />
                   </button>
-                  <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative">
+                  <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative" onClick={() => setCartOpen(true)}>
                     <ShoppingCart className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
                   </button>
                 </div>
               </div>
@@ -161,7 +164,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
       </nav>
       {/* popover positioned relative to navbar (adjust classes if needed) */}
       {showPopover && (
-        <div className="absolute right-4 top-16 z-50">
+        <div className="fixed right-4 top-16 z-[1000]">
           <UserPopover user={user} onClose={() => setShowPopover(false)} onLogout={handleLogoutCleanup} />
         </div>
       )}

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 function getApiBaseUrl() {
-    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || "http://localhost:8080";
+    const raw = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || "http://localhost:8080";
+    return raw.replace(/\/+$/, ""); // trim all trailing slashes to avoid double-slash in path
 }
 
 export async function POST(request: NextRequest) {
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
         }
 
         const API_BASE_URL = getApiBaseUrl()
+        const loginUrl = `${API_BASE_URL}/api/v1/auth/login`
 
         console.log('Login attempt for user:', username)
         console.log('API_BASE_URL:', API_BASE_URL)
@@ -24,10 +26,12 @@ export async function POST(request: NextRequest) {
         console.log('All env vars starting with LOCKNLOCK:', Object.keys(process.env).filter(key => key.startsWith('LOCKNLOCK')))
         console.log('NODE_ENV:', process.env.NODE_ENV)
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        console.log('Login URL (normalized):', loginUrl)
+        const response = await fetch(loginUrl, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
             },
             body: JSON.stringify({ username, password }),
         })
