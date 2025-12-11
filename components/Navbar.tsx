@@ -1,14 +1,18 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Menu, ShoppingCart, Search, User as UserIcon } from "lucide-react"
-import { categories } from "../data/mockData"
+import { Menu, ShoppingCart, Search, User as UserIcon, Home } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import UserPopover from "./ui/user-popover"
 import type { User } from "@/lib/types/user"
-import { set } from "date-fns"
 import { useCart } from "./cart-context"
+
+type Tag = {
+  id: string
+  name: string
+  displayName: string
+}
 
 interface NavbarProps {
   activeCategory: string
@@ -19,8 +23,37 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [showPopover, setShowPopover] = useState(false)
+  const [tags, setTags] = useState<Tag[]>([])
+  const [loadingTags, setLoadingTags] = useState(false)
   const router = useRouter()
   const { setOpen: setCartOpen, itemsCount, refreshCart } = useCart() as any
+
+  // Load tags từ API
+  useEffect(() => {
+    let mounted = true
+    const loadTags = async () => {
+      try {
+        setLoadingTags(true)
+        const res = await fetch("/api/tags", { headers: { Accept: "application/json" }, cache: "no-store" })
+        if (!mounted) return
+        if (res.ok) {
+          const body = await res.json().catch(() => ({}))
+          const tagsData = body?.data || []
+          if (Array.isArray(tagsData)) {
+            setTags(tagsData)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch tags", err)
+      } finally {
+        if (mounted) setLoadingTags(false)
+      }
+    }
+    loadTags()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -44,7 +77,8 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
     return () => {
       mounted = false
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Chỉ chạy 1 lần khi mount, không cần refreshCart trong deps
 
   const handleUserClick = () => {
     if (user) {
@@ -78,18 +112,37 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
 
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-8">
-                {categories.map((category) => (
-                  <button
-                    key={category.key}
-                    onClick={() => onCategoryChange(category.key)}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${activeCategory === category.key
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted hover:text-primary"
-                      }`}
-                  >
-                    {category.label}
-                  </button>
-                ))}
+                {/* Trang chủ */}
+                <button
+                  onClick={() => {
+                    router.push("/")
+                    onCategoryChange("home")
+                  }}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-1 ${activeCategory === "home" || activeCategory === "new"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-muted hover:text-primary"
+                    }`}
+                >
+                  <Home className="h-4 w-4" />
+                  Trang chủ
+                </button>
+                {/* Tags từ API */}
+                {loadingTags ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">Đang tải...</div>
+                ) : (
+                  tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => onCategoryChange(tag.id)}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${activeCategory === tag.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted hover:text-primary"
+                        }`}
+                    >
+                      {tag.displayName || tag.name}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
@@ -97,13 +150,24 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
               <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
                 <Search className="h-5 w-5" />
               </button>
-              <button
-                onClick={handleUserClick}
-                className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors"
-                aria-label="Đăng nhập / Hồ sơ"
-              >
-                <UserIcon className="h-5 w-5" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={handleUserClick}
+                  className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors"
+                  aria-label="Đăng nhập / Hồ sơ"
+                >
+                  <UserIcon className="h-5 w-5" />
+                </button>
+                {showPopover && (
+                  <div className="absolute right-0 top-full mt-2 z-[1000]">
+                    <UserPopover
+                      user={user}
+                      onClose={() => setShowPopover(false)}
+                      onLogout={handleLogoutCleanup}
+                    />
+                  </div>
+                )}
+              </div>
               <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative" onClick={() => setCartOpen(true)}>
                 <ShoppingCart className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
@@ -120,38 +184,69 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
           {isMobileMenuOpen && (
             <div className="md:hidden">
               <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-card border-t border-border">
-                {categories.map((category) => (
-                  <button
-                    key={category.key}
-                    onClick={() => {
-                      onCategoryChange(category.key)
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${activeCategory === category.key
-                      ? "bg-primary text-primary-foreground"
-                      : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
-                      }`}
-                  >
-                    {category.label}
-                  </button>
-                ))}
+                {/* Trang chủ */}
+                <button
+                  onClick={() => {
+                    router.push("/")
+                    onCategoryChange("home")
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 flex items-center gap-2 ${activeCategory === "home" || activeCategory === "new"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
+                    }`}
+                >
+                  <Home className="h-4 w-4" />
+                  Trang chủ
+                </button>
+                {/* Tags từ API */}
+                {loadingTags ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">Đang tải...</div>
+                ) : (
+                  tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        onCategoryChange(tag.id)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${activeCategory === tag.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
+                        }`}
+                    >
+                      {tag.displayName || tag.name}
+                    </button>
+                  ))
+                )}
 
                 <div className="flex items-center space-x-4 px-3 py-2 border-t border-border mt-4">
                   <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
                     <Search className="h-5 w-5" />
                   </button>
-                  <button
-                    onClick={() => {
-                      if (user) setShowPopover(true)
-                      else {
-                        router.push("/auth")
-                        setIsMobileMenuOpen(false)
-                      }
-                    }}
-                    className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors"
-                  >
-                    <UserIcon className="h-5 w-5" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        if (user) setShowPopover(true)
+                        else {
+                          router.push("/auth")
+                          setIsMobileMenuOpen(false)
+                        }
+                      }}
+                      className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors"
+                    >
+                      <UserIcon className="h-5 w-5" />
+                    </button>
+                    {showPopover && (
+                      <div className="absolute right-0 top-full mt-2 z-[1000]">
+                        <UserPopover
+                          user={user}
+                          onClose={() => setShowPopover(false)}
+                          onLogout={handleLogoutCleanup}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative" onClick={() => setCartOpen(true)}>
                     <ShoppingCart className="h-5 w-5" />
                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
@@ -162,12 +257,6 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
           )}
         </div>
       </nav>
-      {/* popover positioned relative to navbar (adjust classes if needed) */}
-      {showPopover && (
-        <div className="fixed right-4 top-16 z-[1000]">
-          <UserPopover user={user} onClose={() => setShowPopover(false)} onLogout={handleLogoutCleanup} />
-        </div>
-      )}
     </>
   )
 }

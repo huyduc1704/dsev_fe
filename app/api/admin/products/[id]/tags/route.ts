@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
 
-export async function POST(req: NextRequest) {
+// POST /api/admin/products/[id]/tags - Thêm tags cho product
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     const cookieStore = cookies();
     const token = cookieStore.get("auth-token")?.value;
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        const res = await fetch(`${API_BASE}/api/v1/orders`, {
+        const res = await fetch(`${API_BASE}/api/v1/products/${params.id}/tags`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -41,10 +42,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(data, { status: res.status });
 
     } catch (error) {
-        console.error("Order POST error:", error);
+        console.error("Product tags POST error:", error);
         return NextResponse.json(
             { success: false, message: "Lỗi server" },
             { status: 500 }
         );
     }
 }
+

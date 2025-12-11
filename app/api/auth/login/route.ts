@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         console.log('Login attempt for user:', username)
         console.log('API_BASE_URL:', API_BASE_URL)
         console.log('LOCKNLOCK_API_URL env var:', process.env.LOCKNLOCK_API_URL)
-        console.log('All env vars starting with LOCKNLOCK:', Object.keys(process.env).filter(key => key.startsWith('LOCKNLOCK')))
+        console.log('All env vars starting with DSEV:', Object.keys(process.env).filter(key => key.startsWith('DSEV')))
         console.log('NODE_ENV:', process.env.NODE_ENV)
 
         console.log('Login URL (normalized):', loginUrl)

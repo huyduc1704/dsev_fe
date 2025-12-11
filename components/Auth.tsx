@@ -10,7 +10,6 @@ import ContactUs from "./ContactUs"
 
 export default function AuthForm() {
     const router = useRouter()
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? ""
 
     const [isRightPanelActive, setIsRightPanelActive] = useState(false)
     const [loginData, setLoginData] = useState({ username: "", password: "" })
@@ -77,17 +76,21 @@ export default function AuthForm() {
             return
         }
         try {
-            const res = await fetch(`${baseUrl}/api/v1/auth/register`, {
+            const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(registerData),
             })
-            const data = await res.json()
+
+            const body = await res.json().catch(() => ({}))
+
             if (!res.ok) {
-                setErrors({ ...errors, register: data?.message || "Đăng ký thất bại" })
+                setErrors({ ...errors, register: body?.error || body?.message || "Đăng ký thất bại" })
                 return
             }
-            message.success("Đăng ký thành công. Vui lòng đăng nhập.")
+
+            message.success(body?.message || "Đăng ký thành công. Vui lòng đăng nhập.")
             setIsRightPanelActive(false)
         } catch (err) {
             console.error(err)

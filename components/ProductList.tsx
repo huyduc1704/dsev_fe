@@ -3,12 +3,18 @@
 import { useState, useMemo, useEffect } from "react"
 import { Grid, List, Filter } from "lucide-react"
 import ProductCard from "./ProductCard"
-import { message } from "antd"
 import { useCart } from "./cart-context"
-import { categories, type Product } from "../data/mockData"
+import { useToast } from "@/hooks/use-toast"
+import { type Product } from "../data/mockData"
 
 interface ProductListProps {
   activeCategory: string
+}
+
+type Tag = {
+  id: string
+  name: string
+  displayName: string
 }
 
 export default function ProductList({ activeCategory }: ProductListProps) {
@@ -17,7 +23,40 @@ export default function ProductList({ activeCategory }: ProductListProps) {
   const [fetchedProducts, setFetchedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentTag, setCurrentTag] = useState<Tag | null>(null)
   const { refreshCart } = useCart() as any
+  const { toast } = useToast()
+
+  // Load tag info nếu activeCategory là tag id
+  useEffect(() => {
+    if (activeCategory === "home" || activeCategory === "new") {
+      setCurrentTag(null)
+      return
+    }
+
+    let ignore = false
+    const loadTag = async () => {
+      try {
+        const res = await fetch(`/api/tags/${activeCategory}`, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        })
+        if (!ignore && res.ok) {
+          const body = await res.json().catch(() => ({}))
+          const tagData = body?.data
+          if (tagData) {
+            setCurrentTag(tagData)
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load tag:", e)
+      }
+    }
+    loadTag()
+    return () => {
+      ignore = true
+    }
+  }, [activeCategory])
 
   useEffect(() => {
     let ignore = false
@@ -29,11 +68,45 @@ export default function ProductList({ activeCategory }: ProductListProps) {
         setLoading(true)
         setError(null)
 
-        const res = await fetch("/api/products/active", {
+        // Xác định endpoint dựa trên activeCategory
+        let endpoint = "/api/products/active"
+        if (activeCategory && activeCategory !== "home" && activeCategory !== "new") {
+          // Khi BE có API filter theo tag, uncomment dòng này:
+          // endpoint = `/api/products/tag/${activeCategory}`
+          // Hiện tại: Vẫn dùng /api/products/active và filter ở FE
+          endpoint = "/api/products/active"
+        }
+
+        const res = await fetch(endpoint, {
           headers: { Accept: "application/json" },
         })
         const body = await res.json().catch(() => ({}))
-        const list = (body?.data ?? []) as any[]
+        let list = (body?.data ?? []) as any[]
+
+        // Tạm thời: Filter ở FE nếu activeCategory là tag id
+        // TODO: Xóa phần này khi BE có API filter theo tag và dùng endpoint trên
+        if (activeCategory && activeCategory !== "home" && activeCategory !== "new") {
+          // Filter products có tag matching với activeCategory (tag id)
+          // Hỗ trợ nhiều format: tags[], tagIds[], tagId
+          list = list.filter((p: any) => {
+            // Format 1: tags là array of objects { id, name }
+            if (Array.isArray(p.tags)) {
+              return p.tags.some((tag: any) => 
+                (typeof tag === 'string' ? tag : tag.id) === activeCategory
+              )
+            }
+            // Format 2: tagIds là array of strings
+            if (Array.isArray(p.tagIds)) {
+              return p.tagIds.includes(activeCategory)
+            }
+            // Format 3: tagId là single string
+            if (p.tagId === activeCategory) {
+              return true
+            }
+            // Nếu product chưa có tags field, không hiển thị (hoặc return true nếu muốn hiển thị tất cả)
+            return false
+          })
+        }
 
         let mapped: Product[] = list.map((p) => {
           const variants = Array.isArray(p?.variants) ? p.variants : []
@@ -129,20 +202,63 @@ export default function ProductList({ activeCategory }: ProductListProps) {
     return products
   }, [fetchedProducts, sortBy])
 
-  const currentCategory = categories.find((cat) => cat.key === activeCategory)
+  // currentCategory được tính từ activeCategory
+  const currentCategory = activeCategory === "home" || activeCategory === "new"
+    ? { key: "home", label: "Trang chủ", icon: "🏠" }
+    : currentTag
+    ? { key: currentTag.id, label: currentTag.displayName || currentTag.name, icon: "🏷️" }
+    : null
 
   const handleAddToCart = async (product: Product) => {
     try {
-      // Fetch product detail to get a variant id
+      // Fetch product detail to get variants
       const detailRes = await fetch(`/api/products/${encodeURIComponent(product.id)}`, { headers: { Accept: "application/json" } })
       const detailBody = await detailRes.json().catch(() => ({}))
       const data = detailBody?.data ?? detailBody
       const variants: any[] = Array.isArray(data?.variants) ? data.variants : []
-      const variant = variants[0]
-      if (!variant?.id) {
-        message.warning("Sản phẩm này chưa có biến thể để thêm vào giỏ hàng")
+      
+      if (variants.length === 0) {
+        toast({
+          title: "Không có biến thể",
+          description: "Sản phẩm này chưa có biến thể để thêm vào giỏ hàng",
+          variant: "destructive",
+        })
         return
       }
+
+      // Chọn variant có giá thấp nhất và còn hàng (stockQuantity > 0)
+      // Nếu không có variant nào còn hàng, chọn variant có giá thấp nhất
+      const availableVariants = variants.filter((v) => (v.stockQuantity ?? 0) > 0)
+      const variantsToChooseFrom = availableVariants.length > 0 ? availableVariants : variants
+      
+      // Sắp xếp theo giá tăng dần và chọn variant đầu tiên (giá thấp nhất)
+      const sortedVariants = [...variantsToChooseFrom].sort((a, b) => {
+        const priceA = Number(a.price ?? 0)
+        const priceB = Number(b.price ?? 0)
+        return priceA - priceB
+      })
+      
+      const variant = sortedVariants[0]
+      
+      if (!variant?.id) {
+        toast({
+          title: "Lỗi",
+          description: "Không tìm thấy biến thể phù hợp để thêm vào giỏ hàng",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Kiểm tra stock nếu variant được chọn không còn hàng
+      if ((variant.stockQuantity ?? 0) <= 0) {
+        toast({
+          title: "Hết hàng",
+          description: "Sản phẩm này hiện đang hết hàng",
+          variant: "destructive",
+        })
+        return
+      }
+
       const token = typeof window !== "undefined" ? (localStorage.getItem("auth-token") || localStorage.getItem("access_token") || localStorage.getItem("token")) : undefined
       const res = await fetch("/api/me/cart/items", {
         method: "POST",
@@ -151,18 +267,35 @@ export default function ProductList({ activeCategory }: ProductListProps) {
       })
       if (res.ok) {
         const body = await res.json().catch(() => ({}))
-        // Treat HTTP 200 as success even if body.success is false due to backend bug
-        message.success(body?.message || `Đã thêm "${product.name}" vào giỏ hàng!`)
-        // Refresh cart badge without opening drawer
+        const variantInfo = variant.color && variant.size 
+          ? ` (${variant.color}, ${variant.size})`
+          : ""
+        toast({
+          title: "Thành công",
+          description: body?.message || `Đã thêm "${product.name}${variantInfo}" vào giỏ hàng!`,
+        })
         await refreshCart()
       } else if (res.status === 401 || res.status === 403) {
-        message.error("Bạn phải đăng nhập để thêm sản phẩm vào giỏ hàng")
+        toast({
+          title: "Cần đăng nhập",
+          description: "Bạn phải đăng nhập để thêm sản phẩm vào giỏ hàng",
+          variant: "destructive",
+        })
       } else {
         const body = await res.json().catch(() => ({}))
-        message.error(body?.message || "Thêm vào giỏ hàng thất bại")
+        toast({
+          title: "Lỗi",
+          description: body?.message || "Thêm vào giỏ hàng thất bại",
+          variant: "destructive",
+        })
       }
     } catch (e) {
-      message.error("Có lỗi xảy ra khi thêm vào giỏ hàng")
+      console.error("Add to cart error:", e)
+      toast({
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi thêm vào giỏ hàng",
+        variant: "destructive",
+      })
     }
   }
 

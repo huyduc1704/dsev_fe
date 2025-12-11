@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useMemo, useState, ReactNode } from "react"
+import { createContext, useContext, useMemo, useState, useCallback, ReactNode } from "react"
 
 export type CartItem = {
     id: string
@@ -32,25 +32,72 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const setItemsFromServer = (newItems: CartItem[]) => setItems(newItems)
 
-    const refreshCart = async () => {
+    const refreshCart = useCallback(async () => {
         try {
             const res = await fetch("/api/me/cart", { headers: { Accept: "application/json" }, cache: "no-store" })
             const data = await res.json().catch(async () => {
                 const txt = await res.text().catch(() => "")
                 try { return JSON.parse(txt) } catch { return {} }
             })
-            const items = (data?.data?.items || []).map((it: any) => ({
-                id: it.id,
-                name: it.productName,
-                price: it.unitPrice,
-                imageUrl: undefined,
-                qty: it.quantity,
-            }))
+            
+            // Nếu không có imageUrl, cần fetch từ product detail
+            // Fetch product list để match productVariantId với variants
+            let productsMap: Map<string, any> = new Map()
+            const cartItems = data?.data?.items || []
+            
+            if (cartItems.length > 0) {
+                try {
+                    // Fetch product list để lấy thông tin products và variants
+                    const productsRes = await fetch("/api/products/active", {
+                        headers: { Accept: "application/json" },
+                        cache: "no-store",
+                    })
+                    if (productsRes.ok) {
+                        const productsData = await productsRes.json().catch(() => ({}))
+                        const products = productsData?.data || productsData || []
+                        
+                        // Tạo map: variantId -> product (để lấy images)
+                        products.forEach((product: any) => {
+                            if (product.variants && Array.isArray(product.variants)) {
+                                product.variants.forEach((variant: any) => {
+                                    if (variant.id) {
+                                        productsMap.set(variant.id, product)
+                                    }
+                                })
+                            }
+                        })
+                    }
+                } catch (err) {
+                    console.error("Error fetching products for images:", err)
+                }
+            }
+
+            // Map items với imageUrl từ product
+            const items = cartItems.map((it: any) => {
+                let imageUrl = it.imageUrl || it.thumbnail || it.productImageUrl || it.image
+                
+                // Nếu không có imageUrl, lấy từ product qua productVariantId
+                if (!imageUrl && it.productVariantId) {
+                    const product = productsMap.get(it.productVariantId)
+                    if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
+                        imageUrl = product.images[0]
+                    }
+                }
+
+                return {
+                    id: it.id,
+                    name: it.productName,
+                    price: it.unitPrice,
+                    imageUrl: imageUrl || undefined,
+                    qty: it.quantity,
+                }
+            })
+            
             setItems(items)
         } catch {
             // ignore
         }
-    }
+    }, [])
 
     const addItem = (item: CartItem) => {
         setItems((prev) => {

@@ -8,7 +8,7 @@ import Footer from "../components/Footer"
 import BrandIntro from "../components/BrandIntro"
 
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState("new")
+  const [activeCategory, setActiveCategory] = useState("home")
 
   return (
     <div className="min-h-screen bg-background">
