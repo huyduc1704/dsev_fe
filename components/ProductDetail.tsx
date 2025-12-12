@@ -5,7 +5,8 @@ import { useCart } from "./cart-context"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { Minus, Plus, ShoppingCart, AlertCircle } from "lucide-react"
+import { Minus, Plus, ShoppingCart, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import Image from "next/image"
 
 interface Variant {
     id: string
@@ -37,6 +38,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     const [selectedSize, setSelectedSize] = useState<string>("")
     const [selectedColor, setSelectedColor] = useState<string>("")
     const [qty, setQty] = useState<number>(1)
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0)
     const { refreshCart } = useCart() as any
     const { toast } = useToast()
 
@@ -66,6 +68,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         setSelectedSize("")
         setSelectedColor("")
         setQty(1)
+        setSelectedImageIndex(0)
     }, [product?.id])
 
     // Tính toán các options có sẵn dựa trên selection
@@ -186,9 +189,19 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         )
     }
 
-    const cover = product.images?.[0] ?? "/placeholder.svg"
+    const images = product.images && product.images.length > 0 ? product.images : ["/placeholder.svg"]
+    const currentImage = images[selectedImageIndex] || images[0] || "/placeholder.svg"
+    
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+    }
+
+    const handlePreviousImage = () => {
+        setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))
+    }
+
+    const handleNextImage = () => {
+        setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))
     }
 
     const handleAddToCart = async () => {
@@ -262,21 +275,86 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 {/* Left: Product gallery */}
-                <div className="relative rounded-xl overflow-hidden border border-border bg-card shadow-lg">
-                    <div className="aspect-square w-full bg-muted">
-                        {cover === "/placeholder.svg" ? (
-                            <div className="flex h-full w-full items-center justify-center">
-                                <span className="text-6xl font-thin text-muted-foreground/30">No Image</span>
-                            </div>
-                        ) : (
-                            <img
-                                src={cover}
-                                alt={product.name}
-                                className="h-full w-full object-contain p-8 md:p-12 transition-transform duration-500 hover:scale-105"
-                                loading="eager"
-                            />
-                        )}
+                <div className="space-y-4">
+                    {/* Main Image */}
+                    <div className="relative rounded-xl overflow-hidden border border-border bg-card shadow-lg">
+                        <div className="aspect-square w-full bg-muted relative">
+                            {currentImage === "/placeholder.svg" ? (
+                                <div className="flex h-full w-full items-center justify-center">
+                                    <span className="text-6xl font-thin text-muted-foreground/30">No Image</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <Image
+                                        src={currentImage}
+                                        alt={`${product.name} - Ảnh ${selectedImageIndex + 1}`}
+                                        fill
+                                        className="object-contain p-8 md:p-12 transition-opacity duration-300"
+                                        loading="eager"
+                                        priority={selectedImageIndex === 0}
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                    />
+                                    {/* Navigation buttons (only show if more than 1 image) */}
+                                    {images.length > 1 && (
+                                        <>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 h-10 w-10 rounded-full shadow-md"
+                                                onClick={handlePreviousImage}
+                                                aria-label="Ảnh trước"
+                                            >
+                                                <ChevronLeft className="h-5 w-5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 h-10 w-10 rounded-full shadow-md"
+                                                onClick={handleNextImage}
+                                                aria-label="Ảnh sau"
+                                            >
+                                                <ChevronRight className="h-5 w-5" />
+                                            </Button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
+
+                    {/* Thumbnail Gallery (only show if more than 1 image) */}
+                    {images.length > 1 && (
+                        <div className="relative">
+                            <div 
+                                className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
+                                style={{
+                                    scrollbarWidth: 'thin',
+                                    scrollbarColor: 'hsl(var(--border)) transparent',
+                                }}
+                            >
+                                {images.map((img, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => setSelectedImageIndex(index)}
+                                        className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                            selectedImageIndex === index
+                                                ? "border-primary ring-2 ring-primary ring-offset-2"
+                                                : "border-border hover:border-primary/50"
+                                        }`}
+                                        aria-label={`Xem ảnh ${index + 1}`}
+                                    >
+                                        <Image
+                                            src={img}
+                                            alt={`${product.name} thumbnail ${index + 1}`}
+                                            fill
+                                            className="object-cover"
+                                            sizes="80px"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right: Content */}

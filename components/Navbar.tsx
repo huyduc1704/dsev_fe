@@ -101,7 +101,13 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
 
   return (
     <>
-      <nav className="bg-background border-b border-border sticky top-0 z-50 shadow-sm">
+      <nav
+        className="sticky top-0 z-50 shadow-sm glass-effect"
+        style={{
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex-shrink-0">
@@ -111,16 +117,16 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
             </div>
 
             <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-8">
+              <div className="ml-10 flex items-center gap-2">
                 {/* Trang chủ */}
                 <button
                   onClick={() => {
                     router.push("/")
                     onCategoryChange("home")
                   }}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-1 ${activeCategory === "home" || activeCategory === "new"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted hover:text-primary"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 h-9 ${activeCategory === "home" || activeCategory === "new"
+                    ? "glass-button-active"
+                    : "glass-button text-foreground hover:text-primary"
                     }`}
                 >
                   <Home className="h-4 w-4" />
@@ -128,15 +134,15 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                 </button>
                 {/* Tags từ API */}
                 {loadingTags ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">Đang tải...</div>
+                  <div className="px-3 py-2 text-sm text-muted-foreground h-9 flex items-center">Đang tải...</div>
                 ) : (
                   tags.map((tag) => (
                     <button
                       key={tag.id}
                       onClick={() => onCategoryChange(tag.id)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${activeCategory === tag.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-muted hover:text-primary"
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 h-9 flex items-center ${activeCategory === tag.id
+                        ? "glass-button-active"
+                        : "glass-button text-foreground hover:text-primary"
                         }`}
                     >
                       {tag.displayName || tag.name}
@@ -147,13 +153,13 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
             </div>
 
             <div className="hidden md:flex items-center space-x-4">
-              <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors">
+              <button className="p-2 rounded-md glass-button text-foreground hover:text-primary transition-all">
                 <Search className="h-5 w-5" />
               </button>
               <div className="relative">
                 <button
                   onClick={handleUserClick}
-                  className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors"
+                  className="p-2 rounded-md glass-button text-foreground hover:text-primary transition-all"
                   aria-label="Đăng nhập / Hồ sơ"
                 >
                   <UserIcon className="h-5 w-5" />
@@ -168,14 +174,14 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                   </div>
                 )}
               </div>
-              <button className="p-2 rounded-md text-foreground hover:bg-muted hover:text-primary transition-colors relative" onClick={() => setCartOpen(true)}>
+              <button className="p-2 rounded-md glass-button text-foreground hover:text-primary transition-all relative" onClick={() => setCartOpen(true)}>
                 <ShoppingCart className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
               </button>
             </div>
 
             <div className="md:hidden">
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-md text-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-md glass-button text-foreground hover:text-accent-foreground transition-all">
                 <Menu className="h-6 w-6" />
               </button>
             </div>
@@ -183,7 +189,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
 
           {isMobileMenuOpen && (
             <div className="md:hidden">
-              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-card border-t border-border">
+              <div className="px-2 pt-2 pb-3 space-y-2 sm:px-3 glass-effect border-t border-border">
                 {/* Trang chủ */}
                 <button
                   onClick={() => {
@@ -191,9 +197,9 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                     onCategoryChange("home")
                     setIsMobileMenuOpen(false)
                   }}
-                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 flex items-center gap-2 ${activeCategory === "home" || activeCategory === "new"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
+                  className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-all duration-200 flex items-center gap-2 h-10 ${activeCategory === "home" || activeCategory === "new"
+                    ? "glass-button-active"
+                    : "glass-button text-card-foreground hover:text-accent-foreground"
                     }`}
                 >
                   <Home className="h-4 w-4" />
@@ -201,7 +207,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                 </button>
                 {/* Tags từ API */}
                 {loadingTags ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">Đang tải...</div>
+                  <div className="px-3 py-2 text-sm text-muted-foreground h-10 flex items-center">Đang tải...</div>
                 ) : (
                   tags.map((tag) => (
                     <button
@@ -210,9 +216,9 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                         onCategoryChange(tag.id)
                         setIsMobileMenuOpen(false)
                       }}
-                      className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${activeCategory === tag.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-card-foreground hover:bg-muted hover:text-accent-foreground"
+                      className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-all duration-200 h-10 flex items-center ${activeCategory === tag.id
+                        ? "glass-button-active"
+                        : "glass-button text-card-foreground hover:text-accent-foreground"
                         }`}
                     >
                       {tag.displayName || tag.name}
@@ -221,7 +227,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                 )}
 
                 <div className="flex items-center space-x-4 px-3 py-2 border-t border-border mt-4">
-                  <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors">
+                  <button className="p-2 rounded-md glass-button text-card-foreground hover:text-accent-foreground transition-all">
                     <Search className="h-5 w-5" />
                   </button>
                   <div className="relative">
@@ -233,7 +239,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                           setIsMobileMenuOpen(false)
                         }
                       }}
-                      className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors"
+                      className="p-2 rounded-md glass-button text-card-foreground hover:text-accent-foreground transition-all"
                     >
                       <UserIcon className="h-5 w-5" />
                     </button>
@@ -247,7 +253,7 @@ export default function Navbar({ activeCategory, onCategoryChange }: NavbarProps
                       </div>
                     )}
                   </div>
-                  <button className="p-2 rounded-md text-card-foreground hover:bg-muted hover:text-accent-foreground transition-colors relative" onClick={() => setCartOpen(true)}>
+                  <button className="p-2 rounded-md glass-button text-card-foreground hover:text-accent-foreground transition-all relative" onClick={() => setCartOpen(true)}>
                     <ShoppingCart className="h-5 w-5" />
                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{itemsCount}</span>
                   </button>

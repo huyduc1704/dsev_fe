@@ -44,7 +44,8 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Tag as TagIcon, X } from "lucide-react"
+import { Tag as TagIcon, X, ImageIcon, Layers } from "lucide-react"
+import Link from "next/link"
 
 interface Category {
     id: string
@@ -88,9 +89,13 @@ export default function ProductsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
+    const [isImageDialogOpen, setIsImageDialogOpen] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
     const [taggingProduct, setTaggingProduct] = useState<Product | null>(null)
+    const [imagingProduct, setImagingProduct] = useState<Product | null>(null)
+    const [productImages, setProductImages] = useState<Array<{ id: string; imageUrl: string; createdAt: string }>>([])
+    const [uploadingImages, setUploadingImages] = useState(false)
     const [formLoading, setFormLoading] = useState(false)
     const [tagLoading, setTagLoading] = useState(false)
     const { toast } = useToast()
@@ -185,7 +190,6 @@ export default function ProductsPage() {
             isActive: true,
             categoryId: "",
         })
-        setVariants([])
         setSelectedTags([])
         setIsDialogOpen(true)
     }
@@ -205,7 +209,6 @@ export default function ProductsPage() {
                     isActive: fullProduct.isActive ?? true,
                     categoryId: fullProduct.categoryId || "",
                 })
-                setVariants(fullProduct.variants || [])
                 // Set selected tags từ product tags
                 setSelectedTags((fullProduct.tags || []).map((t: Tag) => t.id))
                 setIsDialogOpen(true)
@@ -219,7 +222,6 @@ export default function ProductsPage() {
                     isActive: product.isActive ?? true,
                     categoryId: product.categoryId || "",
                 })
-                setVariants(product.variants || [])
                 // Set selected tags từ product tags
                 setSelectedTags((product.tags || []).map((t: Tag) => t.id))
                 setIsDialogOpen(true)
@@ -234,26 +236,108 @@ export default function ProductsPage() {
         }
     }
 
-    const handleAddVariant = () => {
-        setVariants([
-            ...variants,
-            {
-                color: "",
-                size: "",
-                price: 0,
-                stockQuantity: 0,
-            },
-        ])
+    const handleOpenImageDialog = async (product: Product) => {
+        try {
+            const res = await fetch(`/api/admin/products/${product.id}/images`)
+            if (res.ok) {
+                const data = await res.json()
+                setProductImages(data?.data || [])
+            } else {
+                setProductImages([])
+            }
+            setImagingProduct(product)
+            setIsImageDialogOpen(true)
+        } catch (err) {
+            console.error("Fetch images error:", err)
+            setProductImages([])
+            setImagingProduct(product)
+            setIsImageDialogOpen(true)
+        }
     }
 
-    const handleUpdateVariant = (index: number, field: keyof Variant, value: any) => {
-        const updated = [...variants]
-        updated[index] = { ...updated[index], [field]: value }
-        setVariants(updated)
+    const handleUploadImages = async (files: FileList | null) => {
+        if (!imagingProduct || !files || files.length === 0) return
+
+        setUploadingImages(true)
+        try {
+            const formData = new FormData()
+            Array.from(files).forEach((file) => {
+                formData.append("files", file)
+            })
+
+            const res = await fetch(`/api/admin/products/${imagingProduct.id}/images`, {
+                method: "POST",
+                body: formData,
+            })
+
+            const data = await res.json()
+            if (res.ok) {
+                toast({
+                    title: "Thành công",
+                    description: "Đã upload ảnh thành công",
+                })
+                // Refresh images
+                const imagesRes = await fetch(`/api/admin/products/${imagingProduct.id}/images`)
+                if (imagesRes.ok) {
+                    const imagesData = await imagesRes.json()
+                    setProductImages(imagesData?.data || [])
+                }
+            } else {
+                toast({
+                    title: "Lỗi",
+                    description: data?.message || "Không thể upload ảnh",
+                    variant: "destructive",
+                })
+            }
+        } catch (err) {
+            console.error("Upload images error:", err)
+            toast({
+                title: "Lỗi",
+                description: "Có lỗi xảy ra khi upload ảnh",
+                variant: "destructive",
+            })
+        } finally {
+            setUploadingImages(false)
+        }
     }
 
-    const handleRemoveVariant = (index: number) => {
-        setVariants(variants.filter((_, i) => i !== index))
+    const handleDeleteImage = async (imageId: string) => {
+        if (!imagingProduct) return
+
+        try {
+            const res = await fetch(`/api/admin/products/images/${imageId}`, {
+                method: "DELETE",
+            })
+
+            if (res.ok) {
+                toast({
+                    title: "Thành công",
+                    description: "Đã xóa ảnh thành công",
+                })
+                // Refresh images
+                const imagesRes = await fetch(`/api/admin/products/${imagingProduct.id}/images`)
+                if (imagesRes.ok) {
+                    const imagesData = await imagesRes.json()
+                    setProductImages(imagesData?.data || [])
+                }
+                // Refresh products để cập nhật ảnh trong list
+                fetchProducts()
+            } else {
+                const data = await res.json().catch(() => ({}))
+                toast({
+                    title: "Lỗi",
+                    description: data?.message || "Không thể xóa ảnh",
+                    variant: "destructive",
+                })
+            }
+        } catch (err) {
+            console.error("Delete image error:", err)
+            toast({
+                title: "Lỗi",
+                description: "Có lỗi xảy ra khi xóa ảnh",
+                variant: "destructive",
+            })
+        }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -263,6 +347,12 @@ export default function ProductsPage() {
         try {
             let productId: string
 
+            // Chuẩn bị payload với tagIds
+            const payload = {
+                ...formData,
+                ...(selectedTags.length > 0 ? { tagIds: selectedTags } : {}),
+            }
+
             if (editingProduct) {
                 // Update product
                 const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
@@ -271,7 +361,7 @@ export default function ProductsPage() {
                         "Content-Type": "application/json",
                         Accept: "application/json",
                     },
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(payload),
                 })
 
                 const data = await res.json()
@@ -285,35 +375,11 @@ export default function ProductsPage() {
                     return
                 }
                 productId = editingProduct.id
-            } else {
-                // Create product
-                const res = await fetch("/api/admin/products", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                    },
-                    body: JSON.stringify(formData),
-                })
-
-                const data = await res.json()
-                if (!res.ok) {
-                    toast({
-                        title: "Lỗi",
-                        description: data?.message || "Có lỗi xảy ra",
-                        variant: "destructive",
-                    })
-                    setFormLoading(false)
-                    return
-                }
-                productId = data?.data?.id
-            }
-
-            // Save tags sau khi create/update product
-            if (productId) {
-                try {
-                    if (editingProduct) {
-                        // Update: Sync tags (xóa tags cũ không còn trong selectedTags, thêm tags mới)
+                
+                // Nếu PUT không hỗ trợ tagIds, cần sync tags riêng
+                // (Giữ logic sync tags riêng cho update vì có thể PUT không hỗ trợ tagIds)
+                if (productId) {
+                    try {
                         const currentTagIds = (editingProduct.tags || []).map((t: Tag) => t.id)
                         
                         // Xóa tags không còn trong selectedTags
@@ -350,89 +416,52 @@ export default function ProductsPage() {
                                 console.error("Error adding tags:", err)
                             }
                         }
-                    } else {
-                        // Create: Chỉ thêm tags nếu có
-                        if (selectedTags.length > 0) {
-                            try {
-                                const addRes = await fetch(`/api/admin/products/${productId}/tags`, {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        Accept: "application/json",
-                                    },
-                                    body: JSON.stringify(selectedTags),
-                                })
-                                if (!addRes.ok) {
-                                    console.error("Failed to add tags to new product")
-                                }
-                            } catch (err) {
-                                console.error("Error adding tags to new product:", err)
-                            }
-                        }
+                    } catch (err) {
+                        console.error("Sync tags error:", err)
+                        // Không throw error để không block việc save product
                     }
-                } catch (err) {
-                    console.error("Save tags error:", err)
-                    // Không throw error để không block việc save product
                 }
+            } else {
+                // Create product với tagIds trong body
+                const res = await fetch("/api/admin/products", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                })
+
+                const data = await res.json()
+                if (!res.ok) {
+                    toast({
+                        title: "Lỗi",
+                        description: data?.message || "Có lỗi xảy ra",
+                        variant: "destructive",
+                    })
+                    setFormLoading(false)
+                    return
+                }
+                
+                // Lấy productId từ response (BE trả về data.id)
+                productId = data?.data?.id
+                
+                if (!productId) {
+                    console.error("Product ID không có trong response:", data)
+                    toast({
+                        title: "Cảnh báo",
+                        description: "Product có thể đã được tạo nhưng không lấy được ID. Vui lòng refresh trang.",
+                        variant: "default",
+                    })
+                    setFormLoading(false)
+                    fetchProducts()
+                    setIsDialogOpen(false)
+                    return
+                }
+                // Tags đã được gửi trong body, không cần sync riêng
             }
 
-            // Save variants
-            if (productId && variants.length > 0) {
-                // Fetch existing variants để so sánh
-                const existingRes = await fetch(`/api/admin/products/${productId}/variants`)
-                const existingData = await existingRes.json().catch(() => ({ data: [] }))
-                const existingVariants = existingData?.data || []
-
-                // Xóa variants không còn trong danh sách mới
-                for (const existing of existingVariants) {
-                    if (!variants.find((v) => v.id === existing.id)) {
-                        await fetch(
-                            `/api/admin/products/${productId}/variants/${existing.id}`,
-                            { method: "DELETE" }
-                        )
-                    }
-                }
-
-                // Tạo/cập nhật variants
-                for (const variant of variants) {
-                    if (variant.id) {
-                        // Update existing variant
-                        await fetch(
-                            `/api/admin/products/${productId}/variants/${variant.id}`,
-                            {
-                                method: "PUT",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Accept: "application/json",
-                                },
-                                body: JSON.stringify({
-                                    productId,
-                                    color: variant.color,
-                                    size: variant.size,
-                                    price: variant.price,
-                                    stockQuantity: variant.stockQuantity,
-                                }),
-                            }
-                        )
-                    } else {
-                        // Create new variant
-                        await fetch(`/api/admin/products/${productId}/variants`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                Accept: "application/json",
-                            },
-                            body: JSON.stringify({
-                                productId,
-                                color: variant.color,
-                                size: variant.size,
-                                price: variant.price,
-                                stockQuantity: variant.stockQuantity,
-                            }),
-                        })
-                    }
-                }
-            }
+            // Variants được quản lý ở trang riêng, không cần xử lý ở đây
 
             toast({
                 title: "Thành công",
@@ -443,7 +472,6 @@ export default function ProductsPage() {
             setIsDialogOpen(false)
             // Reset form
             setSelectedTags([])
-            setVariants([])
             // Refresh products để hiển thị tags mới nhất
             await fetchProducts()
         } catch (err) {
@@ -707,6 +735,23 @@ export default function ProductsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center justify-end gap-2">
+                                                <Link href={`/admin/products/${product.id}/variants`}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        title="Quản lý variants"
+                                                    >
+                                                        <Layers className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleOpenImageDialog(product)}
+                                                    title="Quản lý ảnh"
+                                                >
+                                                    <ImageIcon className="h-4 w-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -898,118 +943,17 @@ export default function ProductsPage() {
 
                         <Separator />
 
-                        {/* Variants Section */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-base font-semibold">Variants</Label>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleAddVariant}
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Thêm Variant
-                                </Button>
-                            </div>
-
-                            {variants.length === 0 ? (
-                                <div className="text-center py-8 border border-dashed border-border rounded-lg">
-                                    <p className="text-sm text-muted-foreground">
-                                        Chưa có variant nào. Nhấn "Thêm Variant" để thêm.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {variants.map((variant, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-4 border border-border rounded-lg space-y-3"
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm font-medium">
-                                                    Variant {index + 1}
-                                                </span>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleRemoveVariant(index)}
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                            <div className="grid grid-cols-4 gap-3">
-                                                <div className="space-y-2">
-                                                    <Label>Color *</Label>
-                                                    <Input
-                                                        value={variant.color}
-                                                        onChange={(e) =>
-                                                            handleUpdateVariant(
-                                                                index,
-                                                                "color",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Màu sắc"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Size *</Label>
-                                                    <Input
-                                                        value={variant.size}
-                                                        onChange={(e) =>
-                                                            handleUpdateVariant(
-                                                                index,
-                                                                "size",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Kích thước"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Giá (VND) *</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={variant.price}
-                                                        onChange={(e) =>
-                                                            handleUpdateVariant(
-                                                                index,
-                                                                "price",
-                                                                Number(e.target.value)
-                                                            )
-                                                        }
-                                                        placeholder="0"
-                                                        min="0"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Số lượng *</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={variant.stockQuantity}
-                                                        onChange={(e) =>
-                                                            handleUpdateVariant(
-                                                                index,
-                                                                "stockQuantity",
-                                                                Number(e.target.value)
-                                                            )
-                                                        }
-                                                        placeholder="0"
-                                                        min="0"
-                                                        required
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                        <div className="text-sm text-muted-foreground">
+                            <p>
+                                💡 <strong>Lưu ý:</strong> Variants và Images sẽ được quản lý sau khi tạo product.
+                            </p>
+                            <p className="mt-2">
+                                Sau khi tạo product, bạn có thể:
+                            </p>
+                            <ul className="list-disc list-inside mt-1 space-y-1">
+                                <li>Quản lý variants bằng cách click icon <Layers className="h-3 w-3 inline" /> trong bảng</li>
+                                <li>Quản lý ảnh bằng cách click icon <ImageIcon className="h-3 w-3 inline" /> trong bảng</li>
+                            </ul>
                         </div>
 
                         <DialogFooter>
@@ -1035,6 +979,84 @@ export default function ProductsPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Image Management Dialog */}
+            <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Quản lý Ảnh - {imagingProduct?.name}</DialogTitle>
+                        <DialogDescription>
+                            Upload và quản lý ảnh cho product này
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {/* Upload Section */}
+                        <div className="space-y-2">
+                            <Label>Upload ảnh mới</Label>
+                            <Input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleUploadImages(e.target.files)}
+                                disabled={uploadingImages}
+                            />
+                            {uploadingImages && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Đang upload...
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Images Grid */}
+                        <div className="space-y-2">
+                            <Label>Ảnh hiện tại ({productImages.length})</Label>
+                            {productImages.length === 0 ? (
+                                <div className="text-center py-8 border border-dashed border-border rounded-lg">
+                                    <p className="text-sm text-muted-foreground">Chưa có ảnh nào</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-4">
+                                    {productImages.map((img) => (
+                                        <div key={img.id} className="relative group">
+                                            <div className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted">
+                                                <Image
+                                                    src={img.imageUrl}
+                                                    alt="Product image"
+                                                    fill
+                                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                                    className="object-cover"
+                                                />
+                                            </div>
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => handleDeleteImage(img.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setIsImageDialogOpen(false)
+                                setImagingProduct(null)
+                                setProductImages([])
+                            }}
+                        >
+                            Đóng
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

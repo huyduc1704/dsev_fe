@@ -31,7 +31,7 @@ export default function BrandIntro() {
         {/* Brand Introduction */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance">
-            DV.ES - Đồng hành cùng đam mê thể thao
+            DSEV - Đồng hành cùng đam mê thể thao
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto text-pretty">
             Chúng tôi mang đến những sản phẩm thời trang thể thao chất lượng cao, giúp bạn thể hiện phong cách và đạt
