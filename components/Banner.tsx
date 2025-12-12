@@ -150,7 +150,6 @@ export default function Banner() {
                 </button>
               ))
             ) : (
-              // Fallback nếu không có categories
               [
                 { img: "/placeholder.svg", title: "Danh mục sản phẩm" },
                 { img: "/placeholder.svg", title: "Sản phẩm mới" },

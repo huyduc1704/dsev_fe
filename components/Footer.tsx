@@ -66,15 +66,15 @@ export default function Footer() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-background/80">123 Đường Nguyễn Văn Cừ, Quận 1, TP.HCM</span>
+                  <span className="text-sm text-background/80">Hiện tại chúng tôi chỉ bán Online</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-background/80">0123 456 789</span>
+                  <span className="text-sm text-background/80">0777 208 446</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-background/80">info@sportstyle.vn</span>
+                  <span className="text-sm text-background/80">huyndse161632@fpt.edu.vn</span>
                 </div>
               </div>
             </div>
@@ -141,7 +141,7 @@ export default function Footer() {
 
           {/* Copyright */}
           <div className="border-t border-background/20 mt-8 pt-6 text-center">
-            <p className="text-sm text-background/60">© 2024 SportStyle. Tất cả quyền được bảo lưu.</p>
+            <p className="text-sm text-background/60">© 2025 DSEV</p>
           </div>
         </div>
       </footer>
